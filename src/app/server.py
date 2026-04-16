@@ -11,10 +11,15 @@ Endpoints:
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
