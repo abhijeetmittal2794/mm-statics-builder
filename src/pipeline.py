@@ -131,7 +131,10 @@ def _build_prompt(
     force_human: bool | None = None,
 ) -> str:
     copy = inp.copy_deck
-    has_reference = ref is not None
+    # Reference is active if we have a parsed layout OR if a reference image path exists
+    has_reference = (ref is not None) or bool(
+        inp.reference_static_path and Path(inp.reference_static_path).exists()
+    )
 
     # Copy block
     copy_lines = [f'- Headline: "{copy.headline}" — upper area, very bold, 2 lines, large']
@@ -147,13 +150,16 @@ def _build_prompt(
     copy_block = "\n".join(copy_lines)
 
     # Reference-informed composition
-    if has_reference and ref:
-        comp_block = f"""COMPOSITION (inspired by the reference in image 2):
-- Study the layout structure of image 2 — where the product sits, where the headline goes, the visual hierarchy, the whitespace balance.
-- Recreate that same structural feel with the Man Matters product and copy below.
-- Reference mood: {ref.mood}
-- Reference notes: {ref.notes}
-- Do NOT copy the reference's text, branding, or product — only its compositional structure."""
+    if has_reference:
+        ref_detail = ""
+        if ref:
+            ref_detail = f"\n- Reference mood: {ref.mood}\n- Reference notes: {ref.notes}"
+        comp_block = f"""COMPOSITION (you MUST follow the reference image's layout structure):
+- One of the attached images is a REFERENCE STATIC. Study it carefully.
+- Replicate its EXACT compositional structure: where the product is positioned (left/right/center, size relative to canvas), where the headline sits, where the subhead sits, the visual hierarchy, the whitespace balance, the overall arrangement of elements.
+- The reference's STRUCTURE is your layout blueprint. Copy the positions, proportions, and spatial relationships — NOT the reference's text, branding, colors, or product.
+- If the reference shows the product on the left with text on the right, do that. If it shows the product centered with text above, do that. If it shows ingredients arranged around the product, do that.
+- This is the most important instruction: the output's layout must be recognizably the same structure as the reference.{ref_detail}"""
     else:
         comp_block = """COMPOSITION:
 - Jar: center-right, upright, hero, facing camera. Takes up ~40-50% of canvas height.
@@ -221,7 +227,7 @@ Front panel (top to bottom):
 - "60 N Gummies | 1 month supply" — small text
 - "MADE IN INDIA" — very small, bottom-right
 
-{"REFERENCE: The next image after the label close-ups is a reference static whose LAYOUT STRUCTURE you should emulate (not its content or branding). Remaining images are Man Matters brand exemplars — match their visual tone and palette." if has_reference else "STYLE REFERENCES: Remaining images are Man Matters brand exemplars — match their visual tone, palette, and editorial aesthetic."}
+{"CRITICAL — REFERENCE STATIC: One of the images after the label close-ups is a REFERENCE STATIC. This is your LAYOUT BLUEPRINT. You MUST replicate its compositional structure — product position, headline position, text hierarchy, element arrangement. Do NOT copy its text, branding, or product — only its spatial layout. Remaining images are Man Matters brand exemplars for visual tone." if has_reference else "STYLE REFERENCES: Remaining images are Man Matters brand exemplars — match their visual tone, palette, and editorial aesthetic."}
 
 COPY TO RENDER (render every word exactly as written — no paraphrasing, no omitting, no extra words):
 {copy_block}
