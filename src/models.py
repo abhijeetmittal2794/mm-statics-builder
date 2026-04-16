@@ -78,6 +78,16 @@ class BuildInput(BaseModel):
             "Only meaningful when reference_static_path is provided."
         ),
     )
+    background_choice: Literal[
+        "auto", "warm_cream", "studio_white", "cool_ivory", "warm_taupe"
+    ] = Field(
+        "auto",
+        description=(
+            "Background palette. 'auto' rotates across all 4 shades per variant. "
+            "Named values lock all variants to a single beige/white shade. "
+            "Overridden by reference palette when match_mode='closely_match'."
+        ),
+    )
 
 
 # ---------- Agent 1: Brief Parser ----------

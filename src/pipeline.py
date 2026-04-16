@@ -37,13 +37,21 @@ VARIATION_HINTS = [
 ]
 
 # Per-variant background palettes — stays within the beige → white range the brand owns.
-# Indexed by variant_index % len. Each entry is (human-readable name, light hex, dark hex).
+# Each entry is (human-readable name, light hex, dark hex).
 BACKGROUND_PALETTES = [
     ("warm cream",       "#F5F0E8", "#EDE8DC"),
     ("pure studio white", "#FFFFFF", "#F7F5F1"),
     ("cool ivory",       "#F8F6F2", "#EFEEE9"),
     ("warm taupe beige", "#E8DFCF", "#D9CEB9"),
 ]
+
+# Named shade → palette lookup. Keys must match BuildInput.background_choice.
+BACKGROUND_BY_CHOICE = {
+    "warm_cream":    BACKGROUND_PALETTES[0],
+    "studio_white":  BACKGROUND_PALETTES[1],
+    "cool_ivory":    BACKGROUND_PALETTES[2],
+    "warm_taupe":    BACKGROUND_PALETTES[3],
+}
 
 
 def run(inp: BuildInput) -> str:
@@ -131,10 +139,12 @@ def run_variant(
         except Exception:
             ref = None
 
-    # Pick a background palette for this variant. Closely-match locks onto
-    # the reference's own palette (first hex) if parsed.
+    # Pick a background palette for this variant.
+    # Priority: closely_match reference → explicit user choice → auto-rotate.
     if inp.match_mode == "closely_match" and ref and ref.palette_hex:
         bg_palette = ("reference-matched", ref.palette_hex[0], ref.palette_hex[-1])
+    elif inp.background_choice != "auto" and inp.background_choice in BACKGROUND_BY_CHOICE:
+        bg_palette = BACKGROUND_BY_CHOICE[inp.background_choice]
     else:
         bg_palette = BACKGROUND_PALETTES[variant_index % len(BACKGROUND_PALETTES)]
 

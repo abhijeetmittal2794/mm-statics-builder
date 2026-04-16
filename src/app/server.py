@@ -100,6 +100,7 @@ async def api_generate(
     template_hint: str = Form(""),
     include_human: bool = Form(False),
     match_mode: str = Form("inspired"),
+    background_choice: str = Form("auto"),
     reference_image: UploadFile | None = File(None),
 ):
     run_id = uuid.uuid4().hex[:10]
@@ -118,6 +119,10 @@ async def api_generate(
     # Validate match_mode; default to "inspired" for anything unexpected.
     mode = match_mode if match_mode in ("closely_match", "inspired") else "inspired"
 
+    # Validate background_choice; default to "auto" for anything unexpected.
+    valid_bgs = ("auto", "warm_cream", "studio_white", "cool_ivory", "warm_taupe")
+    bg = background_choice if background_choice in valid_bgs else "auto"
+
     inp = BuildInput(
         reference_static_path=ref_path,
         product_image_path=str(hero_silhouette()),
@@ -133,6 +138,7 @@ async def api_generate(
         format=format,
         template_hint=template_hint or None,
         match_mode=mode,
+        background_choice=bg,
     )
 
     params = {
@@ -145,6 +151,7 @@ async def api_generate(
         "template_hint": template_hint,
         "include_human": include_human,
         "match_mode": mode,
+        "background_choice": bg,
         "has_reference": bool(ref_path),
     }
 

@@ -120,6 +120,8 @@ async function onGenerate(e) {
   const matchMode = document.querySelector('[name="match_mode"]:checked');
   fd.append("match_mode", matchMode ? matchMode.value : "inspired");
 
+  fd.append("background_choice", document.getElementById("background-select").value);
+
   const res = await fetch("/api/generate", { method: "POST", body: fd });
   const data = await res.json();
   currentRunId = data.run_id;
