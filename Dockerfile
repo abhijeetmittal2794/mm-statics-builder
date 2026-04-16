@@ -1,10 +1,11 @@
 FROM python:3.12-slim
 
+# Cache bust: v2
 WORKDIR /app
 
-# System deps for Pillow, rembg, onnxruntime
+# System deps for Pillow and image processing
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 libglib2.0-0 && \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
