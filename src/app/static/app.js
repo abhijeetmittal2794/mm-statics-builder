@@ -4,6 +4,7 @@ let currentRunId = null;
 let pollTimer = null;
 let renderedVariants = new Set();
 let refFile = null;
+let committedRatings = {};  // card index → committed rating value
 
 // ---------- Init ----------
 
@@ -58,6 +59,14 @@ function wireEvents() {
   });
   fileInput.addEventListener("change", () => { if (fileInput.files.length) setRefFile(fileInput.files[0]); });
   document.getElementById("ref-clear").addEventListener("click", e => { e.stopPropagation(); clearRefFile(); });
+
+  // CTA toggle
+  const ctaToggle = document.getElementById("cta-toggle");
+  const ctaInput = document.getElementById("cta-input");
+  ctaToggle.addEventListener("change", () => {
+    ctaInput.disabled = !ctaToggle.checked;
+    ctaInput.style.opacity = ctaToggle.checked ? "1" : "0.3";
+  });
 }
 
 function setRefFile(file) {
@@ -90,7 +99,8 @@ async function onGenerate(e) {
   const fd = new FormData();
   fd.append("headline", formVal("headline"));
   fd.append("subhead", formVal("subhead"));
-  fd.append("cta", formVal("cta"));
+  const ctaOn = document.getElementById("cta-toggle").checked;
+  fd.append("cta", ctaOn ? formVal("cta") : "");
   fd.append("bottom_strip_1", document.querySelector('[name="bottom_strip_1"]').value);
   fd.append("bottom_strip_2", document.querySelector('[name="bottom_strip_2"]').value);
   fd.append("bottom_strip_3", document.querySelector('[name="bottom_strip_3"]').value);
@@ -109,6 +119,7 @@ async function onGenerate(e) {
   const data = await res.json();
   currentRunId = data.run_id;
   renderedVariants = new Set();
+  committedRatings = {};
 
   // Show progress, clear gallery
   document.getElementById("empty-state").hidden = true;
@@ -185,7 +196,10 @@ function renderCard(index, url) {
   card.querySelectorAll(".dot").forEach(dot => {
     dot.addEventListener("click", () => rate(index, parseInt(dot.dataset.val)));
     dot.addEventListener("mouseenter", () => highlightDots(card, parseInt(dot.dataset.val)));
-    dot.addEventListener("mouseleave", () => highlightDots(card, 0));
+    dot.addEventListener("mouseleave", () => {
+      // Revert to committed rating on mouse leave (not 0)
+      highlightDots(card, committedRatings[index] || 0);
+    });
   });
 }
 
@@ -205,15 +219,20 @@ function highlightDots(card, upTo) {
 
 async function rate(index, rating) {
   const card = document.getElementById(`card-${index}`);
+  committedRatings[index] = rating;
   highlightDots(card, rating);
 
-  const res = await fetch("/api/rate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ run_id: currentRunId, variant_index: index, rating }),
-  });
-  const data = await res.json();
-  if (data.saved) {
-    card.classList.add("approved");
+  try {
+    const res = await fetch("/api/rate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ run_id: currentRunId, variant_index: index, rating }),
+    });
+    const data = await res.json();
+    if (data.saved) {
+      card.classList.add("approved");
+    }
+  } catch (err) {
+    console.error("Rating failed:", err);
   }
 }
