@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Man Matters — Statics Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">man matters<sup>&reg;</sup> <span class="sub">Statics Builder</span></div>
+  </header>
+
+  <main>
+    <!-- Sidebar: input form -->
+    <aside id="sidebar">
+      <form id="form" enctype="multipart/form-data">
+        <!-- Reference image -->
+        <div class="field">
+          <label>Reference Image <span class="hint">(optional — layout inspiration)</span></label>
+          <div id="dropzone">
+            <span id="dropzone-text">Drop image here or click to upload</span>
+            <img id="ref-preview" hidden />
+            <button type="button" id="ref-clear" hidden>Remove</button>
+            <input type="file" id="ref-input" accept="image/*" hidden />
+          </div>
+        </div>
+
+        <!-- Copy -->
+        <div class="field">
+          <label>Headline <span class="required">*</span></label>
+          <input type="text" name="headline" placeholder="Ancient Strength. Modern Convenience." required />
+        </div>
+        <div class="field">
+          <label>Subhead</label>
+          <input type="text" name="subhead" placeholder="300 mg pure shilajit per serving..." />
+        </div>
+        <div class="field">
+          <label>CTA</label>
+          <input type="text" name="cta" value="Shop Now" />
+        </div>
+
+        <!-- Bottom strip -->
+        <div class="field">
+          <label>Bottom Strip</label>
+          <div class="strip-row">
+            <input type="text" name="bottom_strip_1" value="No Added Sugar" />
+            <input type="text" name="bottom_strip_2" value="100% Natural" />
+            <input type="text" name="bottom_strip_3" value="Clinically Tested" />
+          </div>
+        </div>
+
+        <!-- Ingredients -->
+        <div class="field">
+          <label>Ingredients</label>
+          <div id="ingredients-list" class="checkbox-group"></div>
+        </div>
+
+        <!-- Format -->
+        <div class="field">
+          <label>Format</label>
+          <div id="format-radios" class="radio-row"></div>
+        </div>
+
+        <!-- Template -->
+        <div class="field">
+          <label>Template <span class="hint">(optional)</span></label>
+          <select name="template_hint" id="template-select">
+            <option value="">Auto</option>
+          </select>
+        </div>
+
+        <!-- Human toggle -->
+        <div class="field">
+          <label class="toggle-row">
+            <input type="checkbox" name="include_human" />
+            <span>Include human figure</span>
+          </label>
+        </div>
+
+        <button type="submit" id="btn-generate" class="primary">Generate 4 Variants</button>
+      </form>
+    </aside>
+
+    <!-- Gallery -->
+    <section id="gallery-area">
+      <div id="empty-state">
+        <p>Fill the form and click <strong>Generate</strong> to create statics.</p>
+      </div>
+      <div id="progress" hidden>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+        <span id="progress-text">Generating...</span>
+      </div>
+      <div id="gallery"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

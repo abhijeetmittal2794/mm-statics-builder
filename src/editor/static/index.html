@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MM Statics Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/editor.css" />
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">MM Statics Editor</div>
+    <div class="actions">
+      <button id="btn-reset" title="Revert to defaults">Reset</button>
+      <button id="btn-export" class="primary">Export PNG</button>
+    </div>
+  </header>
+
+  <main>
+    <aside id="inspector">
+      <div class="panel">
+        <h3>Selected element</h3>
+        <div id="no-selection" class="muted">Click an element to edit</div>
+        <div id="selection" hidden>
+          <div class="row"><label>ID</label><div id="sel-id" class="value"></div></div>
+          <div class="row"><label>X</label><input id="sel-x" type="number" /></div>
+          <div class="row"><label>Y</label><input id="sel-y" type="number" /></div>
+          <div class="row"><label>W</label><input id="sel-w" type="number" /></div>
+          <div class="row"><label>H</label><input id="sel-h" type="number" /></div>
+          <div class="row text-only"><label>Size</label><input id="sel-size" type="number" /></div>
+          <div class="row text-only"><label>Align</label>
+            <select id="sel-align">
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Tips</h3>
+        <ul class="muted">
+          <li>Drag any element to reposition</li>
+          <li>Grab corners to resize</li>
+          <li>Double-click text to edit</li>
+          <li>Text resizes the font with its box</li>
+        </ul>
+      </div>
+    </aside>
+
+    <section id="stage">
+      <div id="canvas-wrapper">
+        <div id="canvas"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" hidden></div>
+  <script src="/static/editor.js"></script>
+</body>
+</html>

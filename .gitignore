@@ -1,0 +1,15 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+outputs/statics/
+outputs/scenes/
+outputs/integrated/
+outputs/restamped/
+outputs/designed/
+outputs/compare/
+outputs/uploads/
+outputs/.cutout_cache/
+outputs/layouts/
+.claude/

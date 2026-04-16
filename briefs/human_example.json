@@ -1,0 +1,20 @@
+{
+  "reference_static_path": "Training Images/6.jpg",
+  "product_image_path": "Product Photos/Shilajit 60.png",
+  "prop_image_paths": [],
+  "copy_deck": {
+    "headline": "When Your Energy Hits 0%",
+    "subhead": "Recharge Smarter with Shilajit Gummies.",
+    "claim_bullets": [
+      "Supports daily energy",
+      "Helps reduce stress",
+      "Boosts vitality"
+    ],
+    "cta": "Shop Now",
+    "bottom_strip": ["No Added Sugar", "100% Natural", "Clinically Tested"],
+    "legal": null,
+    "tone_tag": "awareness"
+  },
+  "format": "4:5",
+  "template_hint": "J"
+}

@@ -1,0 +1,19 @@
+{
+  "reference_static_path": "Training Images/4.jpg",
+  "_comment_reference": "Set reference_static_path to the path of any ad whose structure you want to emulate (e.g. 'Training Images/4.jpg' or 'inspiration/competitor.png'). Leave null to use template-based defaults.",
+  "product_image_path": "Product Photos/Shilajit 60.png",
+  "prop_image_paths": [
+    "Training Images/Shilajit.png"
+  ],
+  "copy_deck": {
+    "headline": "Ancient Strength. Modern Convenience.",
+    "subhead": "300 mg pure shilajit per serving, in a tasty chewable gummy.",
+    "claim_bullets": [],
+    "cta": "Shop Now",
+    "bottom_strip": ["No Added Sugar", "100% Natural", "Clinically Tested"],
+    "legal": null,
+    "tone_tag": "consideration"
+  },
+  "format": "4:5",
+  "template_hint": "B"
+}
