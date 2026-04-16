@@ -99,6 +99,7 @@ async def api_generate(
     format: str = Form("4:5"),
     template_hint: str = Form(""),
     include_human: bool = Form(False),
+    match_mode: str = Form("inspired"),
     reference_image: UploadFile | None = File(None),
 ):
     run_id = uuid.uuid4().hex[:10]
@@ -114,6 +115,9 @@ async def api_generate(
     strip = [s for s in [bottom_strip_1, bottom_strip_2, bottom_strip_3] if s.strip()]
     ing_list = json.loads(ingredients) if ingredients else []
 
+    # Validate match_mode; default to "inspired" for anything unexpected.
+    mode = match_mode if match_mode in ("closely_match", "inspired") else "inspired"
+
     inp = BuildInput(
         reference_static_path=ref_path,
         product_image_path=str(hero_silhouette()),
@@ -128,6 +132,7 @@ async def api_generate(
         ),
         format=format,
         template_hint=template_hint or None,
+        match_mode=mode,
     )
 
     params = {
@@ -139,6 +144,8 @@ async def api_generate(
         "format": format,
         "template_hint": template_hint,
         "include_human": include_human,
+        "match_mode": mode,
+        "has_reference": bool(ref_path),
     }
 
     rs = RunStatus(
@@ -156,6 +163,17 @@ async def api_generate(
 def _generate_all(run_id: str, inp: BuildInput, include_human: bool) -> None:
     rs = _RUNS[run_id]
     approved_refs = get_approved_refs(max_count=3)
+
+    # Parse the reference layout once and share it across all variants.
+    # This avoids 4× Claude vision calls and keeps variants consistent.
+    parsed_ref = None
+    if inp.reference_static_path and Path(inp.reference_static_path).exists():
+        try:
+            from ..agents.reference_parser import run as parse_ref
+            parsed_ref = parse_ref(Path(inp.reference_static_path))
+        except Exception:
+            parsed_ref = None
+
     for i in range(rs.total):
         rs.variants[i].status = "running"
         try:
@@ -165,6 +183,7 @@ def _generate_all(run_id: str, inp: BuildInput, include_human: bool) -> None:
                 run_id=run_id,
                 extra_style_refs=approved_refs,
                 force_human=include_human if include_human else None,
+                parsed_reference=parsed_ref,
             )
             rs.variants[i].path = path
             rs.variants[i].status = "done"

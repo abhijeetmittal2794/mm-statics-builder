@@ -69,6 +69,15 @@ class BuildInput(BaseModel):
         None,
         description="Optional: force a specific template (A-J). If None, Brand Translator picks.",
     )
+    match_mode: Literal["closely_match", "inspired"] = Field(
+        "inspired",
+        description=(
+            "Reference handling mode. "
+            "'closely_match' = injects parsed bboxes + palette as strict coordinates. "
+            "'inspired' = forwards only mood + palette as loose guidance. "
+            "Only meaningful when reference_static_path is provided."
+        ),
+    )
 
 
 # ---------- Agent 1: Brief Parser ----------

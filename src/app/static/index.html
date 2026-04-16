@@ -28,6 +28,24 @@
           </div>
         </div>
 
+        <!-- Match mode — only meaningful when a reference is attached -->
+        <div class="field" id="match-mode-field" hidden>
+          <label>Reference Mode</label>
+          <div id="match-mode-radios" class="radio-row">
+            <label>
+              <input type="radio" name="match_mode" value="closely_match" />
+              Closely Matches
+            </label>
+            <label>
+              <input type="radio" name="match_mode" value="inspired" checked />
+              Inspired
+            </label>
+          </div>
+          <div class="hint" style="margin-top: 4px;">
+            Closely Matches = strict layout + palette from reference. Inspired = loose mood only.
+          </div>
+        </div>
+
         <!-- Copy -->
         <div class="field">
           <label>Headline <span class="required">*</span></label>

@@ -78,6 +78,7 @@ function setRefFile(file) {
   preview.hidden = false;
   text.hidden = true;
   clearBtn.hidden = false;
+  document.getElementById("match-mode-field").hidden = false;
 }
 
 function clearRefFile() {
@@ -86,6 +87,7 @@ function clearRefFile() {
   document.getElementById("dropzone-text").hidden = false;
   document.getElementById("ref-clear").hidden = true;
   document.getElementById("ref-input").value = "";
+  document.getElementById("match-mode-field").hidden = true;
 }
 
 // ---------- Generate ----------
@@ -114,6 +116,9 @@ async function onGenerate(e) {
   fd.append("include_human", document.querySelector('[name="include_human"]').checked);
 
   if (refFile) fd.append("reference_image", refFile);
+
+  const matchMode = document.querySelector('[name="match_mode"]:checked');
+  fd.append("match_mode", matchMode ? matchMode.value : "inspired");
 
   const res = await fetch("/api/generate", { method: "POST", body: fd });
   const data = await res.json();

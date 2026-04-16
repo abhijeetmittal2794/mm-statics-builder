@@ -36,6 +36,15 @@ VARIATION_HINTS = [
     "STYLE VARIATION: Airy, minimal composition with generous whitespace and softer tones.",
 ]
 
+# Per-variant background palettes — stays within the beige → white range the brand owns.
+# Indexed by variant_index % len. Each entry is (human-readable name, light hex, dark hex).
+BACKGROUND_PALETTES = [
+    ("warm cream",       "#F5F0E8", "#EDE8DC"),
+    ("pure studio white", "#FFFFFF", "#F7F5F1"),
+    ("cool ivory",       "#F8F6F2", "#EFEEE9"),
+    ("warm taupe beige", "#E8DFCF", "#D9CEB9"),
+]
+
 
 def run(inp: BuildInput) -> str:
     """Run the one-shot pipeline. Returns the path to the final static."""
@@ -89,15 +98,53 @@ def run_variant(
     run_id: str | None = None,
     extra_style_refs: list[Path] | None = None,
     force_human: bool | None = None,
+    parsed_reference: ReferenceLayout | None = None,
 ) -> str:
     """Generate a single variant. Called by the web app for multi-variant runs.
 
     Silent (no Rich output) — designed to run in a background thread.
+
+    If a reference image is attached and `match_mode == "closely_match"`, the
+    reference is parsed once (by the caller, ideally) and its bboxes are
+    injected into the prompt as strict coordinates. In `inspired` mode, only
+    palette + mood are forwarded.
     """
     rid = run_id or uuid.uuid4().hex[:10]
-    hint = VARIATION_HINTS[variant_index % len(VARIATION_HINTS)]
 
-    prompt = _build_prompt(inp, ref=None, variation_hint=hint, force_human=force_human)
+    # Closely-match mode should converge across variants, so skip the style
+    # variation hints. Inspired mode uses them to diverge.
+    if inp.match_mode == "closely_match" and inp.reference_static_path:
+        hint = ""
+    else:
+        hint = VARIATION_HINTS[variant_index % len(VARIATION_HINTS)]
+
+    # Parse reference on first variant if caller didn't pre-parse.
+    ref = parsed_reference
+    if (
+        ref is None
+        and inp.reference_static_path
+        and Path(inp.reference_static_path).exists()
+    ):
+        try:
+            from .agents.reference_parser import run as parse_ref
+            ref = parse_ref(Path(inp.reference_static_path))
+        except Exception:
+            ref = None
+
+    # Pick a background palette for this variant. Closely-match locks onto
+    # the reference's own palette (first hex) if parsed.
+    if inp.match_mode == "closely_match" and ref and ref.palette_hex:
+        bg_palette = ("reference-matched", ref.palette_hex[0], ref.palette_hex[-1])
+    else:
+        bg_palette = BACKGROUND_PALETTES[variant_index % len(BACKGROUND_PALETTES)]
+
+    prompt = _build_prompt(
+        inp,
+        ref=ref,
+        variation_hint=hint,
+        force_human=force_human,
+        bg_palette=bg_palette,
+    )
 
     product_path = hero_silhouette()
     label_refs = label_references(max_count=5)
@@ -129,12 +176,15 @@ def _build_prompt(
     ref: ReferenceLayout | None,
     variation_hint: str = "",
     force_human: bool | None = None,
+    bg_palette: tuple[str, str, str] | None = None,
 ) -> str:
     copy = inp.copy_deck
     # Reference is active if we have a parsed layout OR if a reference image path exists
     has_reference = (ref is not None) or bool(
         inp.reference_static_path and Path(inp.reference_static_path).exists()
     )
+    # "closely_match" only kicks in when a reference exists
+    close_match = (inp.match_mode == "closely_match") and has_reference
 
     # Copy block
     copy_lines = [f'- Headline: "{copy.headline}" — upper area, very bold, 2 lines, large']
@@ -150,16 +200,24 @@ def _build_prompt(
     copy_block = "\n".join(copy_lines)
 
     # Reference-informed composition
-    if has_reference:
+    if close_match:
+        comp_block = _close_match_block(ref, inp.reference_static_path)
+    elif has_reference:
         ref_detail = ""
         if ref:
-            ref_detail = f"\n- Reference mood: {ref.mood}\n- Reference notes: {ref.notes}"
-        comp_block = f"""COMPOSITION (you MUST follow the reference image's layout structure):
-- One of the attached images is a REFERENCE STATIC. Study it carefully.
-- Replicate its EXACT compositional structure: where the product is positioned (left/right/center, size relative to canvas), where the headline sits, where the subhead sits, the visual hierarchy, the whitespace balance, the overall arrangement of elements.
-- The reference's STRUCTURE is your layout blueprint. Copy the positions, proportions, and spatial relationships — NOT the reference's text, branding, colors, or product.
-- If the reference shows the product on the left with text on the right, do that. If it shows the product centered with text above, do that. If it shows ingredients arranged around the product, do that.
-- This is the most important instruction: the output's layout must be recognizably the same structure as the reference.{ref_detail}"""
+            palette_line = (
+                f"\n- Reference palette (use these tones): {', '.join(ref.palette_hex)}"
+                if ref.palette_hex else ""
+            )
+            ref_detail = (
+                f"\n- Reference mood: {ref.mood}"
+                f"\n- Reference notes: {ref.notes}"
+                f"{palette_line}"
+            )
+        comp_block = f"""COMPOSITION (inspired by reference — take the vibe, not the exact layout):
+- One of the attached images is a REFERENCE STATIC. Use it as loose inspiration for mood, tonality, and overall feel — NOT as a strict layout blueprint.
+- You are free to improvise the composition. Keep the brand's clean editorial style.
+- Do NOT copy the reference's text, branding, product, or exact element positions.{ref_detail}"""
     else:
         comp_block = """COMPOSITION:
 - Jar: center-right, upright, hero, facing camera. Takes up ~40-50% of canvas height.
@@ -205,6 +263,13 @@ HUMAN FIGURE:
         bg = "dark charcoal/moody (#2D2825), dramatic lighting"
     elif inp.template_hint in ("E",):
         bg = "mountain/sky outdoor photography, aspirational"
+    elif bg_palette is not None:
+        name, light_hex, dark_hex = bg_palette
+        bg = (
+            f"{name} — a soft gradient between {light_hex} and {dark_hex}, "
+            "soft studio lighting from upper-right. Stay within this beige → white range; "
+            "no grey, no green, no blue tint."
+        )
     else:
         bg = "warm beige/cream (#F5F0E8 to #EDE8DC), soft studio lighting from upper-right"
 
@@ -227,7 +292,7 @@ Front panel (top to bottom):
 - "60 N Gummies | 1 month supply" — small text
 - "MADE IN INDIA" — very small, bottom-right
 
-{"CRITICAL — REFERENCE STATIC: One of the images after the label close-ups is a REFERENCE STATIC. This is your LAYOUT BLUEPRINT. You MUST replicate its compositional structure — product position, headline position, text hierarchy, element arrangement. Do NOT copy its text, branding, or product — only its spatial layout. Remaining images are Man Matters brand exemplars for visual tone." if has_reference else "STYLE REFERENCES: Remaining images are Man Matters brand exemplars — match their visual tone, palette, and editorial aesthetic."}
+{_reference_header(close_match, has_reference)}
 
 COPY TO RENDER (render every word exactly as written — no paraphrasing, no omitting, no extra words):
 {copy_block}
@@ -253,3 +318,91 @@ HARD RULES — violation is disqualifying:
 
 FORMAT: {inp.format} aspect ratio. High resolution, sharp, no grain.
 OUTPUT: a single complete advertising static ready to ship."""
+
+
+def _reference_header(close_match: bool, has_reference: bool) -> str:
+    if close_match:
+        return (
+            "CRITICAL — REFERENCE STATIC: One of the images after the label close-ups is a "
+            "REFERENCE STATIC. This is your STRICT LAYOUT BLUEPRINT. Replicate its compositional "
+            "structure EXACTLY — product position, headline position, subhead position, bottom "
+            "strip position, visual hierarchy, whitespace balance, element proportions. "
+            "Match the reference's palette. Do NOT copy its text, branding, or product — only "
+            "spatial layout and tonality. The remaining images are Man Matters brand exemplars."
+        )
+    if has_reference:
+        return (
+            "INSPIRATION REFERENCE: One of the images after the label close-ups is an "
+            "INSPIRATION STATIC. Take loose mood and tonality cues from it — DO NOT copy its "
+            "layout, text, branding, or product. Feel free to improvise composition. "
+            "Remaining images are Man Matters brand exemplars for visual tone."
+        )
+    return (
+        "STYLE REFERENCES: Remaining images are Man Matters brand exemplars — match their "
+        "visual tone, palette, and editorial aesthetic."
+    )
+
+
+def _close_match_block(ref: ReferenceLayout | None, ref_path: str | None) -> str:
+    """Build the strict compositional block for closely_match mode.
+
+    When `ref` is a parsed ReferenceLayout, we inject normalized bbox coordinates
+    so NBP has numeric placement targets. When parsing failed but a reference
+    image is still attached, we fall back to prose-strict language.
+    """
+    lines = ["COMPOSITION (STRICT — you MUST replicate the reference's structure):"]
+    lines.append(
+        "- The REFERENCE STATIC attached is your LAYOUT BLUEPRINT. "
+        "Match its element positions, proportions, and spatial hierarchy."
+    )
+
+    if ref is not None:
+        def _fmt(box):
+            if box is None:
+                return None
+            return (
+                f"x={box.x:.2f}, y={box.y:.2f}, "
+                f"w={box.w:.2f}, h={box.h:.2f} (fractions of canvas)"
+            )
+
+        coord_lines: list[str] = []
+        if ref.product:
+            coord_lines.append(f"- Product jar position: {_fmt(ref.product)}")
+        if ref.headline:
+            coord_lines.append(f"- Headline block position: {_fmt(ref.headline)}")
+        if ref.subhead:
+            coord_lines.append(f"- Subhead block position: {_fmt(ref.subhead)}")
+        if ref.bottom_strip:
+            coord_lines.append(f"- Bottom strip position: {_fmt(ref.bottom_strip)}")
+        if coord_lines:
+            lines.append("")
+            lines.append("EXACT NORMALIZED COORDINATES FROM THE REFERENCE:")
+            lines.extend(coord_lines)
+            lines.append(
+                "- Each coordinate is a fraction of canvas width/height. "
+                "Place each element so its top-left corner lands at (x, y) and its "
+                "dimensions are (w, h). Stay within ±3% of these targets."
+            )
+
+        if ref.logo_position:
+            lines.append(f"- Logo corner (from reference): {ref.logo_position}")
+        if ref.mood:
+            lines.append(f"- Reference mood: {ref.mood}")
+        if ref.notes:
+            lines.append(f"- Reference notes: {ref.notes}")
+        if ref.palette_hex:
+            lines.append(
+                f"- Reference palette (use these tones): {', '.join(ref.palette_hex)}"
+            )
+    else:
+        lines.append(
+            "- Study the reference image carefully. Replicate its product placement, "
+            "headline placement, subhead placement, and bottom-strip placement "
+            "within ±3% of the original positions."
+        )
+
+    lines.append(
+        "- Do NOT copy the reference's text, branding, product, or logo. "
+        "Copy only its spatial layout and tonality."
+    )
+    return "\n".join(lines)
